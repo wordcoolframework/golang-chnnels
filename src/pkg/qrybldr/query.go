@@ -1,6 +1,9 @@
 package qrybldr
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 func (q *Qrybldr) Select(columns ...string) *Qrybldr {
 	q.db = q.db.Select(columns)
@@ -13,8 +16,24 @@ func (q *Qrybldr) Where(query string, args ...interface{}) *Qrybldr {
 }
 
 func (q *Qrybldr) WhereLike(col string, value any) *Qrybldr {
+	return q.WhereLikeTable(col, value, q.tableName())
+}
+
+func (q *Qrybldr) WhereLikeTable(col string, value any, table interface{}) *Qrybldr {
+	var tableName string
+
+	switch t := table.(type) {
+	case string:
+		tableName = t
+	default:
+		modelType := reflect.TypeOf(table)
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
+		}
+		tableName = TableNameFromType(modelType)
+	}
 	likeValue := fmt.Sprintf("%%%v%%", value)
-	q.db = q.db.Where(fmt.Sprintf("%s LIKE ?", col), likeValue)
+	q.db = q.db.Where(fmt.Sprintf("%s.%s LIKE ?", tableName, col), likeValue)
 	return q
 }
 

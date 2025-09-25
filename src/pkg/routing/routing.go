@@ -2,6 +2,7 @@ package routing
 
 import (
 	"fiber-gorm-channel-ecommerce/src/interface/provider"
+
 	"github.com/gofiber/fiber/v2"
 )
 

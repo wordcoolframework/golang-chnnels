@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fiber-gorm-channel-ecommerce/src/application/http/handlers"
 	"fiber-gorm-channel-ecommerce/src/domain/model/entity"
 	"fiber-gorm-channel-ecommerce/src/pkg/databaseCore"
 	"fiber-gorm-channel-ecommerce/src/pkg/qrybldr"
@@ -20,8 +21,10 @@ func ProductRoutes(router *fiber.App) {
 		// var user []entity.User
 
 		_ = qb.Model(&entity.Product{}).
+			With("User").
 			With("User.Orders").
 			With("Categories").
+			WhereLikeTable("name", "arash", &entity.User{}). // or "users"
 			Get(&products)
 
 		qb.Gorm().Clauses()
@@ -38,4 +41,6 @@ func ProductRoutes(router *fiber.App) {
 			"data": result,
 		})
 	})
+
+	router.Post("/create", handlers.NewUserHandler().Create)
 }

@@ -1,9 +1,10 @@
 package configCore
 
 import (
-	"fiber-gorm-channel-ecommerce/src/application/config"
-	"github.com/spf13/viper"
+	"fiber-gorm-channel-ecommerce/src/config"
 	"log"
+
+	"github.com/spf13/viper"
 )
 
 var configurations config.Config
@@ -15,7 +16,7 @@ func ConfigurationGet() config.Config {
 func ConfigurationSet() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("src/application/config")
+	viper.AddConfigPath("src/config")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("error reading config data", err)
