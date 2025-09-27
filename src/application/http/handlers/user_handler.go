@@ -5,23 +5,20 @@ import (
 	"fiber-gorm-channel-ecommerce/src/domain/model/entity"
 	"fiber-gorm-channel-ecommerce/src/infrastructure/security"
 	"fiber-gorm-channel-ecommerce/src/pkg/qrybldr"
-	"fiber-gorm-channel-ecommerce/src/pkg/validator"
-	"gorm.io/gorm"
 	"net/http"
+
+	"gorm.io/gorm"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type UserHandler struct {
 	db *gorm.DB
-	qb *qrybldr.Qrybldr
 }
 
 func NewUserHandler(db *gorm.DB) *UserHandler {
-	qb := qrybldr.Instance(db)
 	return &UserHandler{
 		db: db,
-		qb: qb,
 	}
 }
 
@@ -35,34 +32,69 @@ func (u *UserHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
-	messages := map[string]string{
-		"name.required":     "نام الزامی است",
-		"name.min":          "نام باید حداقل ۳ کاراکتر باشد",
-		"email.required":    "ایمیل الزامی است",
-		"email.email":       "ایمیل معتبر نیست",
-		"password.required": "رمز عبور الزامی است",
-		"password.min":      "رمز عبور باید حداقل ۶ کاراکتر باشد",
-		"role.required":     "نقش کاربری الزامی است",
-		"role.min":          "نقش کاربری حداقل 15 کاراکتر باشد",
-	}
+	return u.db.Transaction(func(tx *gorm.DB) error {
 
-	if errs := validator.ValidateStruct(userReq, messages); errs != nil {
-		return c.Status(422).JSON(fiber.Map{
-			"validate_error": errs,
+		exists, err := qrybldr.Orm().Query().
+			Where("email = ? OR name = ?", userReq.Email, userReq.Name).
+			Exists(&entity.User{})
+
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"message": "خطا در بررسی اطلاعات",
+				"error":   err.Error(),
+			})
+		}
+
+		if exists {
+			return c.Status(409).JSON(fiber.Map{
+				"message": "کاربری با این ایمیل یا نام قبلا ثبت نام کرده است",
+			})
+		}
+
+		newUser := entity.User{
+			Name:     userReq.Name,
+			Email:    userReq.Email,
+			Password: security.HashPassword(userReq.Password),
+			Role:     userReq.Role,
+		}
+
+		if err := qrybldr.Orm().Query().Create(&newUser); err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"message": "خطا در ایجاد کاربر",
+				"error":   err.Error(),
+			})
+		}
+
+		userResponse := fiber.Map{
+			"id":    newUser.ID,
+			"name":  newUser.Name,
+			"email": newUser.Email,
+			"role":  newUser.Role,
+		}
+
+		return c.Status(http.StatusCreated).JSON(fiber.Map{
+			"message": "کاربر با موفقیت ایجاد شد",
+			"data":    userResponse,
+		})
+	})
+
+}
+
+func (u *UserHandler) Show(c *fiber.Ctx) error {
+
+	id := c.Params("id")
+
+	if id == "" {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "param id is required !",
 		})
 	}
+	var user entity.User
+	// err := u.db.First(&user, id).Error
 
-	newUser := entity.User{
-		Name:     c.Params("name"),
-		Email:    c.Params("email"),
-		Password: security.HashPassword(c.Params("password")),
-		Role:     c.Params("role"),
-	}
+	qrybldr.Orm().Query().Where("id = ?", id).First(&user)
 
-	_ = u.qb.Create(&newUser)
+	return c.Status(http.StatusOK).JSON(fiber.Map{"data": user})
 
-	return c.Status(http.StatusOK).JSON(fiber.Map{
-		"message": "create user successful",
-		"data":    newUser,
-	})
+	// return application.RespondRecord(c, err, "User", user)
 }

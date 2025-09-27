@@ -1,6 +1,8 @@
 package qrybldr
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -10,6 +12,9 @@ type Qrybldr struct {
 }
 
 func Instance(db *gorm.DB) *Qrybldr {
+	if db == nil {
+		return &Qrybldr{db: nil}
+	}
 	return &Qrybldr{db: db}
 }
 
@@ -26,4 +31,14 @@ func (q *Qrybldr) Table(table string) *Qrybldr {
 
 func (q *Qrybldr) Gorm() *gorm.DB {
 	return q.db
+}
+
+func (q *Qrybldr) checkInitialized() error {
+	if q == nil {
+		return errors.New("qrybldr is nil")
+	}
+	if q.db == nil {
+		return errors.New("gorm.DB is not initialized")
+	}
+	return nil
 }

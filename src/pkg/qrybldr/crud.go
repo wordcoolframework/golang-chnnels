@@ -2,7 +2,6 @@ package qrybldr
 
 import (
 	"errors"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -20,8 +19,8 @@ func (q *Qrybldr) FirstOrFail(dest interface{}) error {
 }
 
 func (q *Qrybldr) Create(dest interface{}) error {
-	if q.db == nil {
-		return fmt.Errorf("gorm.DB is nil in Qrybldr")
+	if err := q.checkInitialized(); err != nil {
+		return err
 	}
 	return q.db.Create(dest).Error
 }

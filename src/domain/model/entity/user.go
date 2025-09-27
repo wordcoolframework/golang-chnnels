@@ -4,10 +4,10 @@ import "gorm.io/gorm"
 
 type User struct {
 	gorm.Model
-	Name     string
-	Email    string
-	Password string
-	Role     string // customer, admin, seller
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     string `json:"role"` // customer, admin, seller
 	Orders   []Order
 	Products []Product `gorm:"foreignKey:UserID"`
 }

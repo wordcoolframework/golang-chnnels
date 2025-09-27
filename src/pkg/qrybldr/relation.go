@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (q *Qrybldr) With(relation string) *Qrybldr {
+func (q *Qrybldr) WithAny(relation string) *Qrybldr {
 	modelType := reflect.TypeOf(q.model)
 	if modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()

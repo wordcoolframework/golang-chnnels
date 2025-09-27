@@ -8,6 +8,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
+	golang.org/x/crypto v0.42.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.0
 )
@@ -17,7 +18,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
 )
 

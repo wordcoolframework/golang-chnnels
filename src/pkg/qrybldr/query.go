@@ -1,8 +1,10 @@
 package qrybldr
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 func (q *Qrybldr) Select(columns ...string) *Qrybldr {
@@ -13,6 +15,52 @@ func (q *Qrybldr) Select(columns ...string) *Qrybldr {
 func (q *Qrybldr) Where(query string, args ...interface{}) *Qrybldr {
 	q.db = q.db.Where(query, args...)
 	return q
+}
+
+func (q *Qrybldr) WhereIn(column string, values []interface{}) *Qrybldr {
+	if len(values) == 0 {
+		return q.Where("1 = 0")
+	}
+	placeholders := strings.Repeat("?,", len(values))
+	placeholders = placeholders[:len(placeholders)-1]
+	return q.Where(fmt.Sprintf("%s IN (%s)", column, placeholders), values...)
+}
+
+func (q *Qrybldr) WhereNotIn(column string, values []interface{}) *Qrybldr {
+	if len(values) == 0 {
+		return q
+	}
+	placeholders := strings.Repeat("?,", len(values))
+	placeholders = placeholders[:len(placeholders)-1]
+	return q.Where(fmt.Sprintf("%s NOT IN (%s)", column, placeholders), values...)
+}
+
+func (q *Qrybldr) WhereBetween(column string, min, max interface{}) *Qrybldr {
+	return q.Where(fmt.Sprintf("%s BETWEEN ? AND ?", column), min, max)
+}
+
+func (q *Qrybldr) WhereNotBetween(column string, min, max interface{}) *Qrybldr {
+	return q.Where(fmt.Sprintf("%s NOT BETWEEN ? AND ?", column), min, max)
+}
+
+func (q *Qrybldr) WhereNull(column string) *Qrybldr {
+	return q.Where(fmt.Sprintf("%s IS NULL", column))
+}
+
+func (q *Qrybldr) WhereNotNull(column string) *Qrybldr {
+	return q.Where(fmt.Sprintf("%s IS NOT NULL", column))
+}
+
+func (q *Qrybldr) WhereDate(column string, date string) *Qrybldr {
+	return q.Where(fmt.Sprintf("DATE(%s) = ?", column), date)
+}
+
+func (q *Qrybldr) WhereMonth(column string, month int) *Qrybldr {
+	return q.Where(fmt.Sprintf("MONTH(%s) = ?", column), month)
+}
+
+func (q *Qrybldr) WhereYear(column string, year int) *Qrybldr {
+	return q.Where(fmt.Sprintf("YEAR(%s) = ?", column), year)
 }
 
 func (q *Qrybldr) WhereLike(col string, value any) *Qrybldr {
@@ -70,11 +118,6 @@ func (q *Qrybldr) Distinct() *Qrybldr {
 	return q
 }
 
-func (q *Qrybldr) Join(table string, condition string) *Qrybldr {
-	q.db = q.db.Joins("JOIN " + table + " ON " + condition)
-	return q
-}
-
 func (q *Qrybldr) FindByID(dest interface{}, id interface{}) error {
 	return q.db.First(dest, id).Error
 }
@@ -87,13 +130,31 @@ func (q *Qrybldr) Pluck(dest interface{}, column string) error {
 	return q.db.Pluck(column, dest).Error
 }
 
-func (q *Qrybldr) Count() (int64, error) {
+func (q *Qrybldr) Count(model interface{}) (int64, error) {
+	if err := q.checkInitialized(); err != nil {
+		return 0, err
+	}
+
 	var count int64
-	err := q.db.Count(&count).Error
-	return count, err
+	err := q.db.Model(model).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
-func (q *Qrybldr) Exists() (bool, error) {
-	c, err := q.Count()
-	return c > 0, err
+func (q *Qrybldr) Exists(model interface{}) (bool, error) {
+	if err := q.checkInitialized(); err != nil {
+		return false, err
+	}
+
+	if model == nil {
+		return false, errors.New("model cannot be nil")
+	}
+
+	count, err := q.Count(model)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
